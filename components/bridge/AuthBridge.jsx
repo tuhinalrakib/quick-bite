@@ -1,5 +1,9 @@
-import React from 'react';
+"use client"
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { setAuthLoading, setIsAuthenticated, setUserInfo } from "../../store/userSlice";
+import apiClient from '../../utils/apiClient';
+import { API_ENDPOINTS } from '../../constants/apiEnd';
 
 const AuthBridge = ({ children }) => {
     const { isAuthenticated } = useSelector((state) => state.user);
@@ -9,22 +13,26 @@ const AuthBridge = ({ children }) => {
         try {
             if (!isAuthenticated) {
                 dispatch(setUserInfo(null));
-                dispatch(setIsAuthenticated(false));
                 dispatch(setAuthLoading(false))
                 return;
             }
+            dispatch(setAuthLoading(true))
 
             const res = await apiClient.get(API_ENDPOINTS.PROFILE);
 
-            dispatch(setUserInfo(res.data));
+            dispatch(setUserInfo(res.data.user));
             dispatch(setIsAuthenticated(true));
         } catch (error) {
             dispatch(setUserInfo(null));
             dispatch(setIsAuthenticated(false));
         } finally {
-            setLoading(false);
+            dispatch(setAuthLoading(false));
         }
     };
+
+    useEffect(() => {
+        checkAuth();
+    }, []);
 
     return children
 };

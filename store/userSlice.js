@@ -16,8 +16,6 @@ const userSlice = createSlice({
         setIsAuthenticated: (state, action) => {
             state.isAuthenticated = action.payload;
         },
-
-        // 👇 loading control
         setAuthLoading: (state, action) => {
             state.isLoading = action.payload;
         },
@@ -33,7 +31,7 @@ export const {
     setUserInfo,
     setIsAuthenticated,
     logoutUser,
-    setAuthLoading, // 👈 export it
+    setAuthLoading,
 } = userSlice.actions;
 
 export default userSlice.reducer;

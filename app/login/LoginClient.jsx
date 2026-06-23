@@ -6,9 +6,9 @@ import axios from "axios";
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../../constants/apiEnd";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setIsAuthenticated, setUserInfo } from "@/store/userSlice";
 import { useForm } from "react-hook-form";
 import Swal from "sweetalert2";
@@ -17,6 +17,7 @@ const LoginClient = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [serverError, setServerError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const {userInfo} = useSelector((state)=>state.user)
 
     const router = useRouter();
     const dispatch = useDispatch();
@@ -32,6 +33,12 @@ const LoginClient = () => {
             password: "",
         },
     });
+
+    useEffect(()=>{
+        if(userInfo){
+            router.replace("/")
+        }
+    },[])
 
     const onSubmit = async (data) => {
         setServerError("");
@@ -62,13 +69,22 @@ const LoginClient = () => {
                 router.push("/");
             }
         } catch (error) {
-            setServerError(
-                error?.response?.data?.message ||
-                error?.message ||
-                "Invalid credentials. Try again."
-            );
-
-            console.log(error);
+            let msg = "Something went wrong. Please try again.";
+            const errorMsg = error?.response?.data?.message;
+            // console.log(errorMsg)
+            
+            // if (errorMsg) {
+            //     const errorMap = {
+            //         "Email and password not found": "Email and password required",
+            //         "User not found": "No account found with this email!",
+            //         "Account deactivated": "User did not active",
+            //         "Password mismatch": "Invalid credentials",
+            //     };
+            //     msg = errorMap[errorMsg] || msg;
+            //     console.log(errorMap[errorMsg])
+            // }
+            msg = errorMsg || msg
+            Swal.fire({ icon: "error", title: "Oops!", text: msg });
         } finally {
             setIsLoading(false);
         }
@@ -83,6 +99,7 @@ const LoginClient = () => {
             setServerError(
                 error?.message || "Google sign-in failed."
             );
+
         } finally {
             setIsLoading(false);
         }

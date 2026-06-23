@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { RootState } from "@/redux/store";
 
 import {
   Search,
@@ -26,6 +27,10 @@ import {
 } from "@/components/ui/Dropdown-Menu";
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/Sheet";
+import { useDispatch, useSelector } from "react-redux";
+import apiClient from "@/utils/apiClient";
+import { API_ENDPOINTS } from "@/constants/apiEnd";
+import { setIsAuthenticated } from "@/store/userSlice";
 
 interface NavbarProps {
   cartCount?: number;
@@ -45,14 +50,15 @@ const NavLink: React.FC<{ href: string; children: React.ReactNode }> = ({
   );
 };
 
+
+
 const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const { userInfo } = useSelector((state: RootState) => state.user)
+  const dispatch = useDispatch()
+
 
   const router = useRouter();
-
-  // Demo data
-  const isLoggedIn = false;
-  const userRole: "customer" | "admin" = "customer";
 
   const handleSearch = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,6 +67,12 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
       router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
+
+  const handleLogout = async () => {
+    await apiClient.post(API_ENDPOINTS.LOGOUT)
+    dispatch(setIsAuthenticated(false))
+    dispatch
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#E6F2DD] backdrop-blur">
@@ -78,15 +90,26 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
             <NavLink href="/foods">
               Browse Food
             </NavLink>
+            {
+              userInfo?.role === "customer" && <>
+                <NavLink href="/orders">
 
-            <NavLink href="/orders">
+                  My Orders
+                </NavLink>
 
-              Your Orders
-            </NavLink>
+                <NavLink href="/account">
+                  Profile
+                </NavLink>
+              </>
+            }
+            {
+              userInfo?.role === "admin" && <>
+                <NavLink href="/admin/Dashboard">
+                  Dashboard
+                </NavLink>
+              </>
+            }
 
-            <NavLink href="/account">
-              Account
-            </NavLink>
           </nav>
         </div>
 
@@ -122,7 +145,7 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
           </Link>
 
           {/* User Menu */}
-          {isLoggedIn ? (
+          {userInfo ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -130,40 +153,44 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
                   className="hidden sm:flex items-center gap-1 bg-[#E15B1E] hover:bg-[#c84e17] text-white capitalize"
                 >
                   <User className="h-4 w-4 mr-1" />
-                  {userRole}
+                  {userInfo?.role}
                   <ChevronDown className="h-4 w-4 ml-1 opacity-70" />
                 </Button>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent align="end" className="w-48 mt-2">
-                {userRole === "admin" && (
+                {userInfo?.role === "admin" && (
                   <DropdownMenuItem
-                    onClick={() => router.push("/admin/dashboard")}
+                    onClick={() => router.push("/admin/Dashboard")}
                   >
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     Admin Dashboard
                   </DropdownMenuItem>
                 )}
 
-                <DropdownMenuItem
-                  onClick={() => router.push("/profile")}
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  My Profile
-                </DropdownMenuItem>
+                {
+                  userInfo?.role === "customer" && <>
+                    <DropdownMenuItem
+                      onClick={() => router.push("/profile")}
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      My Profile
+                    </DropdownMenuItem>
 
-                <DropdownMenuItem
-                  onClick={() => router.push("/orders")}
-                >
-                  <ShoppingBag className="mr-2 h-4 w-4" />
-                  My Orders
-                </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => router.push("/orders")}
+                    >
+                      <ShoppingBag className="mr-2 h-4 w-4" />
+                      My Orders
+                    </DropdownMenuItem>
+                  </>
+                }
 
                 <hr className="my-1" />
 
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
-                  onClick={() => console.log("Logout")}
+                  onClick={handleLogout}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
@@ -192,7 +219,7 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
                 </Button>
               </SheetTrigger>
 
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetContent side="right" className="w-75 sm:w-100">
                 <div className="flex flex-col gap-6 mt-8">
                   <form
                     onSubmit={handleSearch}
@@ -216,22 +243,26 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
                     >
                       Browse Food
                     </Link>
+                    {
+                      userInfo?.role === "customer" && <>
+                        <Link
+                          href="/orders"
+                          className="hover:text-[#E15B1E] transition-colors"
+                        >
+                          Your Orders
+                        </Link>
 
-                    <Link
-                      href="/orders"
-                      className="hover:text-[#E15B1E] transition-colors"
-                    >
-                      Your Orders
-                    </Link>
+                        <Link
+                          href="/account"
+                          className="hover:text-[#E15B1E] transition-colors"
+                        >
+                          Account
+                        </Link>
+                      </>
+                    }
 
-                    <Link
-                      href="/account"
-                      className="hover:text-[#E15B1E] transition-colors"
-                    >
-                      Account
-                    </Link>
 
-                    {userRole === "admin" && (
+                    {userInfo?.role === "admin" && (
                       <Link
                         href="/admin/dashboard"
                         className="text-blue-600 hover:underline"
@@ -243,7 +274,9 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
 
                   <hr />
 
-                  <Button className="bg-[#E15B1E] hover:bg-[#c84e17] w-full">
+                  <Button
+                    onClick={handleLogout}
+                    className="bg-[#E15B1E] hover:bg-[#c84e17] w-full">
                     Logout
                   </Button>
                 </div>
