@@ -22,9 +22,9 @@ export const metadata: Metadata = {
   },
   description: "Buy Burgers, Coffe, Pizza...etc at best price in BD.",
   icons: {
-    icon: "/shop.png",
-    shortcut: "/shop.png",
-    apple: "/shop.png",
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 };
 

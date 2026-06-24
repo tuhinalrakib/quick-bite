@@ -1,9 +1,12 @@
 "use client"
 import { Star, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useSelector } from "react-redux";
 
 export const FoodCard = ({ food, onAddToCart }) => {
   const { name, description, price, image, rating, restaurantName } = food;
+  const { userInfo } = useSelector((state) => state.user);
+  const isAdmin = userInfo?.role === "admin";
 
   return (
     <div className="flex flex-col rounded-2xl border bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
@@ -36,13 +39,19 @@ export const FoodCard = ({ food, onAddToCart }) => {
         {/* Price and Add to Cart Action */}
         <div className="flex items-center justify-between pt-1">
           <span className="text-xl font-extrabold text-gray-900">${price?.toFixed(2)}</span>
-          <Button
-            onClick={() => onAddToCart?.(food)}
-            className="bg-[#E15B1E] hover:bg-[#c84e17] text-white rounded-xl text-xs h-9 px-3 font-semibold flex items-center gap-1.5"
-          >
-            <ShoppingCart className="h-3.5 w-3.5" />
-            Add to Cart
-          </Button>
+          {!isAdmin ? (
+            <Button
+              onClick={() => onAddToCart?.(food)}
+              className="bg-[#E15B1E] hover:bg-[#c84e17] text-white rounded-xl text-xs h-9 px-3 font-semibold flex items-center gap-1.5"
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              Add to Cart
+            </Button>
+          ) : (
+            <span className="text-[11px] text-gray-400 font-semibold italic border border-gray-100 rounded-lg px-2.5 py-1.5 bg-gray-50/80">
+              Admin Mode (No Cart)
+            </span>
+          )}
         </div>
       </div>
     </div>

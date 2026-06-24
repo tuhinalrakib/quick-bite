@@ -1,27 +1,46 @@
 
 "use client"
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ShoppingBag, Users, DollarSign, Utensils } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import Spinner from "@/components/ui/Spinner";
+import apiClient from "@/utils/apiClient";
+import { API_ENDPOINTS } from "@/constants/apiEnd";
 
 export const DashboardClient = () => {
   const {userInfo, isLoading} = useSelector((state)=>state.user)
   const router = useRouter()
-  const stats = [
-    { label: "Total Orders", value: "148", icon: ShoppingBag, color: "bg-blue-500" },
-    { label: "Total Customers", value: "84", icon: Users, color: "bg-green-500" },
-    { label: "Total Revenue", value: "Rs. 45,200", icon: DollarSign, color: "bg-amber-500" },
-    { label: "Active Items", value: "32", icon: Utensils, color: "bg-purple-500" },
-  ];
-
+  const [statsData, setStatsData] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(()=>{
     if(!userInfo || userInfo.role !== "admin"){
       router.push("/")
+      return;
     }
+
+    const fetchStats = async () => {
+      try {
+        const res = await apiClient.get(API_ENDPOINTS.DASHBOARD_STATS);
+        if (res.data) {
+          setStatsData(res.data);
+        }
+      } catch (err) {
+        console.error("Error fetching stats:", err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
   },[userInfo])
+
+  const stats = [
+    { label: "Total Orders", value: statsLoading ? "..." : statsData?.totalOrders ?? "0", icon: ShoppingBag, color: "bg-blue-500" },
+    { label: "Total Customers", value: statsLoading ? "..." : statsData?.totalCustomers ?? "0", icon: Users, color: "bg-green-500" },
+    { label: "Total Revenue", value: statsLoading ? "..." : statsData?.totalRevenue ?? "$0.00", icon: DollarSign, color: "bg-amber-500" },
+    { label: "Active Items", value: statsLoading ? "..." : statsData?.activeItems ?? "0", icon: Utensils, color: "bg-purple-500" },
+  ];
 
   if(isLoading) return <Spinner />
 

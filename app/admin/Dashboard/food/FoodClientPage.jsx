@@ -1,45 +1,56 @@
 "use client"
-import React, { useState } from "react";
-import { Plus, Trash2, Edit2, Search, Utensils, Upload, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Trash2, Edit2, Search, Utensils, Upload, X, Loader2 } from "lucide-react";
 import { Button } from "../../../../components/ui/Button";
 import { Input } from "../../../../components/ui/Input";
 import apiClient from "@/utils/apiClient";
 import { API_ENDPOINTS } from "@/constants/apiEnd";
-
-// ডামি ডাটা (আপনার ডাটাবেজ থেকে আসবে)
-const initialFoods = [
-    { id: 1, name: "Classic Pepperoni Pizza", category: "pizza", price: 14.99, isAvailable: true, preview: null, description: "Delicious pepperoni with mozzarella cheese." },
-    { id: 2, name: "Gourmet Burger", category: "burgers", price: 14.99, isAvailable: true, preview: null, description: "Juicy beef patty with special sauce." },
-    { id: 3, name: "Decadent Cake", category: "cake", price: 14.99, isAvailable: false, preview: null, description: "Rich chocolate layers." },
-];
+import Swal from "sweetalert2";
 
 const FoodClientPage = () => {
-    const [foods, setFoods] = useState(initialFoods);
+    const [foods, setFoods] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
     // মেইন ফর্ম স্টেটসমূহ
     const [newFood, setNewFood] = useState({ name: "", category: "pizza", price: "", description: "" });
     const [image, setImage] = useState(null); // ব্যাকএন্ডে পাঠানোর জন্য র ফাইল স্টেট
     const [preview, setPreview] = useState(""); // UI-তে দেখানোর জন্য লোকাল URL স্টেট
 
-    // ইমেজ ইনপুট হ্যান্ডলার
+    // API থেকে খাবার নিয়ে আসার জন্য useEffect
+    useEffect(() => {
+        const fetchFoods = async () => {
+            try {
+                const res = await apiClient.get(`${API_ENDPOINTS.FOOD_ITEM}`);
+                if (res.data && res.data.foods) {
+                    setFoods(res.data.foods);
+                }
+            } catch (err) {
+                console.error("Error fetching foods:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchFoods();
+    }, []);
+
+    // Image Input handler
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // preview (local) এবং ব্যাকএন্ড ফাইল স্টেট সেট করা
         setPreview(URL.createObjectURL(file));
         setImage(file);
     };
 
-    // ইমেজ রিমুভ করার হ্যান্ডলার
+
     const handleRemoveImage = () => {
         setImage(null);
         setPreview("");
     };
 
-    // মোডাল ক্লোজ করার সাথে সাথে সব স্টেট রিসেট করার ফাংশন
     const closeModal = () => {
         setIsModalOpen(false);
         setNewFood({ name: "", category: "pizza", price: "", description: "" });
@@ -47,37 +58,70 @@ const FoodClientPage = () => {
         setPreview("");
     };
 
-    // খাবার ডিলিট করার ফাংশন
-    const handleDelete = (id) => {
+    // Handle Delete 
+    const handleDelete = async (id) => {
         if (confirm("Are you sure you want to delete this item?")) {
-            setFoods(foods.filter((food) => food.id !== id));
+            try {
+                const res = await apiClient.delete(`${API_ENDPOINTS.FOOD_ITEM}/${id}`);
+                if (res.data?.success) {
+                    setFoods(foods.filter((food) => (food._id || food.id) !== id));
+                    alert("Food item deleted successfully!");
+                }
+            } catch (err) {
+                console.error("Error deleting food:", err);
+                alert(err?.response?.data?.message || "Failed to delete food item.");
+            }
         }
     };
 
-    // নতুন খাবার যোগ করার হ্যান্ডলার
+    // Add food handler
     const handleAddFood = async (e) => {
         e.preventDefault();
 
-        const formData = new FormData();
-
-        formData.append("name", newFood.name);
-        formData.append("category", newFood.category);
-        formData.append("price", newFood.price);
-        formData.append("description", newFood.description);
-
-        if (image) {
-            formData.append("image", image);
+        if (!image) {
+            alert("Please upload a food image.");
+            return;
         }
 
-        const res = await apiClient.post(
-            `${API_ENDPOINTS.FOOD_ITEM}`,
-            formData,
-            {
-                headers: {
-                    "Content-Type": "multipart/form-data",
+        setSubmitting(true);
+        try {
+            const formData = new FormData();
+            formData.append("name", newFood.name);
+            formData.append("category", newFood.category);
+            formData.append("price", newFood.price);
+            formData.append("description", newFood.description);
+            formData.append("image", image);
+
+            const res = await apiClient.post(
+                `${API_ENDPOINTS.FOOD_ITEM}`,
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    }
                 }
+            );
+
+            if (res.data?.success) {
+                const createdFood = res.data.data;
+                setFoods([createdFood, ...foods]);
+                Swal.fire({
+                    position: "center",
+                    icon: "success",
+                    title: "Item Added!",
+                    text: "Food item added successfully!",
+                    showConfirmButton: false,
+                    timer: 1500,
+                });
+                closeModal();
             }
-        );
+        } catch (err) {
+            console.error("Error adding food:", err);
+            const msg = err?.response?.data?.message || "Failed to add food item."
+            Swal.fire({ icon: "error", title: "Oops!", text: msg });
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const filteredFoods = foods.filter((food) =>
@@ -121,39 +165,56 @@ const FoodClientPage = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y text-sm text-gray-700">
-                        {filteredFoods.map((food) => (
-                            <tr key={food.id} className="hover:bg-gray-50/50 transition-colors">
-                                <td className="p-4 font-medium flex items-center gap-3">
-                                    {food.preview ? (
-                                        <img src={food.preview} alt={food.name} className="h-9 w-9 object-cover rounded-lg border" />
-                                    ) : (
-                                        <div className="p-2 bg-orange-50 text-[#E15B1E] rounded-lg">
-                                            <Utensils className="h-4 w-4" />
-                                        </div>
-                                    )}
-                                    <div>
-                                        <div className="font-medium text-gray-950">{food.name}</div>
-                                        {food.description && <div className="text-xs text-gray-400 line-clamp-1 max-w-[250px]">{food.description}</div>}
+                        {loading ? (
+                            <tr>
+                                <td colSpan="5" className="p-8 text-center text-gray-500">
+                                    <div className="flex justify-center items-center gap-2">
+                                        <Loader2 className="h-5 w-5 animate-spin text-[#E15B1E]" />
+                                        <span>Loading food items...</span>
                                     </div>
                                 </td>
-                                <td className="p-4 capitalize">{food.category}</td>
-                                <td className="p-4">${food.price.toFixed(2)}</td>
-                                <td className="p-4">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${food.isAvailable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                        }`}>
-                                        {food.isAvailable ? "Available" : "Out of Stock"}
-                                    </span>
-                                </td>
-                                <td className="p-4 text-right space-x-2">
-                                    <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
-                                        <Edit2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(food.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                            </tr>
+                        ) : filteredFoods.length === 0 ? (
+                            <tr>
+                                <td colSpan="5" className="p-8 text-center text-gray-500">
+                                    No food items found.
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            filteredFoods.map((food) => (
+                                <tr key={food._id || food.id} className="hover:bg-gray-50/50 transition-colors">
+                                    <td className="p-4 font-medium flex items-center gap-3">
+                                        {food.image || food.preview ? (
+                                            <img src={food.image || food.preview} alt={food.name} className="h-9 w-9 object-cover rounded-lg border" />
+                                        ) : (
+                                            <div className="p-2 bg-orange-50 text-[#E15B1E] rounded-lg">
+                                                <Utensils className="h-4 w-4" />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <div className="font-medium text-gray-950">{food.name}</div>
+                                            {food.description && <div className="text-xs text-gray-400 line-clamp-1 max-w-[250px]">{food.description}</div>}
+                                        </div>
+                                    </td>
+                                    <td className="p-4 capitalize">{food.category}</td>
+                                    <td className="p-4">${Number(food.price).toFixed(2)}</td>
+                                    <td className="p-4">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${food.isAvailable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                            }`}>
+                                            {food.isAvailable ? "Available" : "Out of Stock"}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-right space-x-2">
+                                        <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
+                                            <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(food._id || food.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -175,6 +236,7 @@ const FoodClientPage = () => {
                                             type="button"
                                             onClick={handleRemoveImage}
                                             className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600 transition-colors"
+                                            disabled={submitting}
                                         >
                                             <X className="h-4 w-4" />
                                         </button>
@@ -190,6 +252,7 @@ const FoodClientPage = () => {
                                             accept="image/*"
                                             className="hidden"
                                             onChange={handleImageChange}
+                                            disabled={submitting}
                                         />
                                     </label>
                                 )}
@@ -198,23 +261,26 @@ const FoodClientPage = () => {
                             {/* ফুড নেম */}
                             <div>
                                 <label className="text-xs font-medium text-gray-500">Food Name</label>
-                                <Input required value={newFood.name} onChange={(e) => setNewFood({ ...newFood, name: e.target.value })} placeholder="e.g., BBQ Chicken Pizza" />
+                                <Input required value={newFood.name} onChange={(e) => setNewFood({ ...newFood, name: e.target.value })} placeholder="e.g., BBQ Chicken Pizza" disabled={submitting} />
                             </div>
 
                             {/* ক্যাটাগরি এবং প্রাইস */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs font-medium text-gray-500">Category</label>
-                                    <select className="w-full h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E15B1E] bg-white" value={newFood.category} onChange={(e) => setNewFood({ ...newFood, category: e.target.value })}>
+                                    <select className="w-full h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E15B1E] bg-white" value={newFood.category} onChange={(e) => setNewFood({ ...newFood, category: e.target.value })} disabled={submitting}>
                                         <option value="pizza">Pizza</option>
                                         <option value="burgers">Burgers</option>
                                         <option value="cake">Cake</option>
                                         <option value="salads">Salads</option>
+                                        <option value="sandwich">Sandwich</option>
+                                        <option value="beverages">Beverages</option>
+                                        <option value="trending">Trending</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label className="text-xs font-medium text-gray-500">Price ($)</label>
-                                    <Input required type="number" step="0.01" value={newFood.price} onChange={(e) => setNewFood({ ...newFood, price: e.target.value })} placeholder="12.99" />
+                                    <Input required type="number" step="0.01" value={newFood.price} onChange={(e) => setNewFood({ ...newFood, price: e.target.value })} placeholder="12.99" disabled={submitting} />
                                 </div>
                             </div>
 
@@ -227,13 +293,24 @@ const FoodClientPage = () => {
                                     placeholder="Write a brief description about the food..."
                                     rows={3}
                                     className="w-full rounded-md border p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E15B1E] resize-none"
+                                    disabled={submitting}
+                                    required
                                 />
                             </div>
 
                             {/* অ্যাকশন বাটন */}
                             <div className="flex justify-end gap-3 pt-2">
-                                <Button type="button" variant="outline" onClick={closeModal}>Cancel</Button>
-                                <Button type="submit" className="bg-[#E15B1E] hover:bg-[#c84e17]">Save Item</Button>
+                                <Button type="button" variant="outline" onClick={closeModal} disabled={submitting}>Cancel</Button>
+                                <Button type="submit" className="bg-[#E15B1E] hover:bg-[#c84e17]" disabled={submitting}>
+                                    {submitting ? (
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>Saving...</span>
+                                        </div>
+                                    ) : (
+                                        "Save Item"
+                                    )}
+                                </Button>
                             </div>
                         </form>
                     </div>

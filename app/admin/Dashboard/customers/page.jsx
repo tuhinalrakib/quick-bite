@@ -1,4 +1,5 @@
 import React from 'react';
+import CustomerClientPage from './CustomerClientPage';
 
 export const metadata = {
   title: "Customer Management",
@@ -6,11 +7,7 @@ export const metadata = {
 };
 
 const CustomerManagement = () => {
-    return (
-        <div>
-            
-        </div>
-    );
+    return <CustomerClientPage />;
 };
 
 export default CustomerManagement;

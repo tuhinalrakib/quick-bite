@@ -30,6 +30,7 @@ import { useDispatch, useSelector } from "react-redux";
 import apiClient from "@/utils/apiClient";
 import { API_ENDPOINTS } from "@/constants/apiEnd";
 import { setIsAuthenticated, setUserInfo } from "@/store/userSlice";
+import Image from "next/image";
 
 interface NavbarProps {
   cartCount?: number;
@@ -88,13 +89,19 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
             <span className="flex items-center gap-1 text-xl font-bold tracking-tight text-[#E15B1E]">
-              🍕 QuickBite
+              <Image
+                src="/logo.png"
+                width={60}
+                height={60}
+                alt="logo"
+                className="rounded-lg"
+              /> QuickBite
             </span>
           </Link>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
-            <NavLink href="/foods">
+            <NavLink href="/browse-food">
               Browse Food
             </NavLink>
             {
@@ -138,18 +145,22 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
         {/* Right Actions */}
         <div className="flex items-center gap-4">
           {/* Cart */}
-          <Link
-            href="/cart"
-            className="relative p-2 text-gray-700 hover:text-[#E15B1E] transition-colors"
-          >
-            <ShoppingCart className="h-6 w-6" />
+          {
+            userInfo && userInfo.role === "customer" && <>
+              <Link
+                href="/cart"
+                className="relative p-2 text-gray-700 hover:text-[#E15B1E] transition-colors"
+              >
+                <ShoppingCart className="h-6 w-6" />
 
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E15B1E] text-[10px] font-bold text-white ring-2 ring-white">
-                {cartCount}
-              </span>
-            )}
-          </Link>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E15B1E] text-[10px] font-bold text-white ring-2 ring-white">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            </>
+          }
 
           {/* User Menu */}
           {userInfo ? (
