@@ -57,10 +57,3 @@
 └── tailwind.config.ts          # Tailwind CSS কনফিগারেশন ফাইল
  */
 
-/**
- * NEXT_PUBLIC_URL=http://localhost:5000
-
-# Google OAUTH
-GOOGLE_CLIENT_ID=800110998179-5tubk1vmkgjh8m9gh7j907ino4tkjhmh.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
- */
