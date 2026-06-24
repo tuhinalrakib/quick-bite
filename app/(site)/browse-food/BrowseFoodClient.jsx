@@ -5,12 +5,19 @@ import { FoodCard } from "../../../components/home/FoodCard";
 import { Input } from "../../../components/ui/Input";
 import apiClient from "@/utils/apiClient";
 import { API_ENDPOINTS } from "@/constants/apiEnd";
+import { useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import Swal from "sweetalert2";
+import { addToCart } from "@/store/cartSlice";
 
 const BrowseFoodClient = () => {
     const [foods, setFoods] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
+    const router = useRouter();
+    const dispatch = useDispatch();
+    const { userInfo } = useSelector((state) => state.user);
 
     // Fetch foods from backend
     useEffect(() => {
@@ -28,6 +35,37 @@ const BrowseFoodClient = () => {
         };
         fetchFoods();
     }, []);
+
+    const handleAddToCart = (food) => {
+        if (!userInfo) {
+            Swal.fire({
+                title: "Login Required",
+                text: "Please login as a customer to add items to your cart.",
+                icon: "info",
+                showCancelButton: true,
+                confirmButtonColor: "#E15B1E",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Go to Login",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    router.push("/login");
+                }
+            });
+            return;
+        }
+
+        dispatch(addToCart(food));
+
+        Swal.fire({
+            title: "Added to Cart!",
+            text: `${food.name} has been added to your cart.`,
+            icon: "success",
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 2000,
+        });
+    };
 
     // Filter categories list
     const categories = [
@@ -114,7 +152,7 @@ const BrowseFoodClient = () => {
                             <FoodCard 
                                 key={food._id || food.id} 
                                 food={food} 
-                                onAddToCart={(f) => console.log("Added to cart:", f)} 
+                                onAddToCart={handleAddToCart} 
                             />
                         ))}
                     </div>

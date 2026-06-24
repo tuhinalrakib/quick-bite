@@ -60,9 +60,11 @@ const NavLink: React.FC<{ href: string; children: React.ReactNode }> = ({
 
 
 
-const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
+const Navbar: React.FC<NavbarProps> = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { userInfo } = useSelector((state: NavbarUserState) => state.user)
+  const cartItems = useSelector((state: any) => state.cart?.items || [])
+  const cartCount = cartItems.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0)
   const dispatch = useDispatch()
 
 
