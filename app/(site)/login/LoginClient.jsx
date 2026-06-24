@@ -5,19 +5,22 @@ import { Input } from "@/components/ui/Input";
 import axios from "axios";
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { API_ENDPOINTS } from "../../constants/apiEnd";
+import { API_ENDPOINTS } from "@/constants/apiEnd";
 import { useDispatch, useSelector } from "react-redux";
 import { setIsAuthenticated, setUserInfo } from "@/store/userSlice";
 import { useForm } from "react-hook-form";
 import Swal from "sweetalert2";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const LoginClient = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [serverError, setServerError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const {userInfo} = useSelector((state)=>state.user)
+    const { userInfo } = useSelector((state) => state.user)
+    const searchParams = useSearchParams()
+    const redirect = searchParams.get("redirect") || "/";
 
     const router = useRouter();
     const dispatch = useDispatch();
@@ -34,11 +37,11 @@ const LoginClient = () => {
         },
     });
 
-    useEffect(()=>{
-        if(userInfo){
+    useEffect(() => {
+        if (userInfo) {
             router.replace("/")
         }
-    },[])
+    }, [])
 
     const onSubmit = async (data) => {
         setServerError("");
@@ -71,18 +74,7 @@ const LoginClient = () => {
         } catch (error) {
             let msg = "Something went wrong. Please try again.";
             const errorMsg = error?.response?.data?.message;
-            // console.log(errorMsg)
-            
-            // if (errorMsg) {
-            //     const errorMap = {
-            //         "Email and password not found": "Email and password required",
-            //         "User not found": "No account found with this email!",
-            //         "Account deactivated": "User did not active",
-            //         "Password mismatch": "Invalid credentials",
-            //     };
-            //     msg = errorMap[errorMsg] || msg;
-            //     console.log(errorMap[errorMsg])
-            // }
+
             msg = errorMsg || msg
             Swal.fire({ icon: "error", title: "Oops!", text: msg });
         } finally {
@@ -90,20 +82,48 @@ const LoginClient = () => {
         }
     };
 
-    const handleGoogleLogin = async () => {
-        setIsLoading(true);
+    // Google Login
+    const handleGoogleLogin = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                console.log("✅ Google token received:", tokenResponse);
+                const res = await axios.post(`${API_ENDPOINTS.GOOGLE_LOGIN}`,
+                    {
+                        token: tokenResponse.access_token,
+                    },
+                    { withCredentials: true }
+                )
+                if (res.data) {
+                    const { user } = res.data;
+                    dispatch(setIsAuthenticated(true))
+                    dispatch(setUserInfo(user))
+                    Swal.fire({
+                        icon: "success",
+                        title: "Google Login Successful",
+                        timer: 1500,
+                        showConfirmButton: false,
+                    });
 
-        try {
-            // Google Login Logic
-        } catch (error) {
-            setServerError(
-                error?.message || "Google sign-in failed."
-            );
-
-        } finally {
-            setIsLoading(false);
+                    router.replace(redirect);
+                }
+            } catch (err) {
+                console.error("❌ Google login backend error:", err.response?.data || err.message)
+                Swal.fire({
+                    icon: "error",
+                    title: "Google login failed",
+                    text: err.response?.data?.message || "Server error"
+                });
+            }
+        },
+        onError: (error) => {
+            console.error("❌ Google OAuth error:", error);
+            Swal.fire({
+                icon: "error",
+                title: "Google login failed",
+                text: "Could not authenticate with Google"
+            });
         }
-    };
+    })
 
     return (
         <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-50/50 px-4 py-12 sm:px-6 lg:px-8">
@@ -222,7 +242,7 @@ const LoginClient = () => {
                     </Button>
 
                     <p className="text-center text-sm text-gray-600 mt-4">
-                        Don't have an account?{" "}
+                        Don&apos;t have an account?{" "}
                         <Link
                             href="/register"
                             className="font-medium text-[#E15B1E] hover:underline"

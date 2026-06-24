@@ -2,11 +2,11 @@
 import { Eye, EyeOff, Lock, Mail, Phone, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
-import { Button } from "../../components/ui/Button"
-import { Input } from "../../components/ui/Input"
+import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
 import Link from 'next/link';
 import axios from 'axios';
-import { API_ENDPOINTS } from '../../constants/apiEnd';
+import { API_ENDPOINTS } from '@/constants/apiEnd';
 import Swal from 'sweetalert2';
 
 const RegisterClient = () => {

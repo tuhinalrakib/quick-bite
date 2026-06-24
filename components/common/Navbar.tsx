@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { RootState } from "@/redux/store";
 
 import {
   Search,
@@ -30,11 +29,19 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/Sheet";
 import { useDispatch, useSelector } from "react-redux";
 import apiClient from "@/utils/apiClient";
 import { API_ENDPOINTS } from "@/constants/apiEnd";
-import { setIsAuthenticated } from "@/store/userSlice";
+import { setIsAuthenticated, setUserInfo } from "@/store/userSlice";
 
 interface NavbarProps {
   cartCount?: number;
 }
+
+type NavbarUserState = {
+  user: {
+    userInfo?: {
+      role?: string;
+    } | null;
+  };
+};
 
 const NavLink: React.FC<{ href: string; children: React.ReactNode }> = ({
   href,
@@ -54,7 +61,7 @@ const NavLink: React.FC<{ href: string; children: React.ReactNode }> = ({
 
 const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { userInfo } = useSelector((state: RootState) => state.user)
+  const { userInfo } = useSelector((state: NavbarUserState) => state.user)
   const dispatch = useDispatch()
 
 
@@ -71,7 +78,7 @@ const Navbar: React.FC<NavbarProps> = ({ cartCount = 2 }) => {
   const handleLogout = async () => {
     await apiClient.post(API_ENDPOINTS.LOGOUT)
     dispatch(setIsAuthenticated(false))
-    dispatch
+    dispatch(setUserInfo(null))
   }
 
   return (

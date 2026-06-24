@@ -1,21 +1,51 @@
 "use client"
 import React, { useState } from "react";
-import { Plus, Trash2, Edit2, Search, Utensils } from "lucide-react";
+import { Plus, Trash2, Edit2, Search, Utensils, Upload, X } from "lucide-react";
 import { Button } from "../../../../components/ui/Button";
 import { Input } from "../../../../components/ui/Input";
+import apiClient from "@/utils/apiClient";
+import { API_ENDPOINTS } from "@/constants/apiEnd";
 
 // ডামি ডাটা (আপনার ডাটাবেজ থেকে আসবে)
 const initialFoods = [
-  { id: 1, name: "Classic Pepperoni Pizza", category: "pizza", price: 14.99, isAvailable: true },
-  { id: 2, name: "Gourmet Burger", category: "burgers", price: 14.99, isAvailable: true },
-  { id: 3, name: "Decadent Cake", category: "cake", price: 14.99, isAvailable: false },
+    { id: 1, name: "Classic Pepperoni Pizza", category: "pizza", price: 14.99, isAvailable: true, preview: null, description: "Delicious pepperoni with mozzarella cheese." },
+    { id: 2, name: "Gourmet Burger", category: "burgers", price: 14.99, isAvailable: true, preview: null, description: "Juicy beef patty with special sauce." },
+    { id: 3, name: "Decadent Cake", category: "cake", price: 14.99, isAvailable: false, preview: null, description: "Rich chocolate layers." },
 ];
 
 const FoodClientPage = () => {
     const [foods, setFoods] = useState(initialFoods);
     const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // মেইন ফর্ম স্টেটসমূহ
     const [newFood, setNewFood] = useState({ name: "", category: "pizza", price: "", description: "" });
+    const [image, setImage] = useState(null); // ব্যাকএন্ডে পাঠানোর জন্য র ফাইল স্টেট
+    const [preview, setPreview] = useState(""); // UI-তে দেখানোর জন্য লোকাল URL স্টেট
+
+    // ইমেজ ইনপুট হ্যান্ডলার
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // preview (local) এবং ব্যাকএন্ড ফাইল স্টেট সেট করা
+        setPreview(URL.createObjectURL(file));
+        setImage(file);
+    };
+
+    // ইমেজ রিমুভ করার হ্যান্ডলার
+    const handleRemoveImage = () => {
+        setImage(null);
+        setPreview("");
+    };
+
+    // মোডাল ক্লোজ করার সাথে সাথে সব স্টেট রিসেট করার ফাংশন
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setNewFood({ name: "", category: "pizza", price: "", description: "" });
+        setImage(null);
+        setPreview("");
+    };
 
     // খাবার ডিলিট করার ফাংশন
     const handleDelete = (id) => {
@@ -25,20 +55,29 @@ const FoodClientPage = () => {
     };
 
     // নতুন খাবার যোগ করার হ্যান্ডলার
-    const handleAddFood = (e) => {
+    const handleAddFood = async (e) => {
         e.preventDefault();
-        if (!newFood.name || !newFood.price) return;
 
-        const item = {
-            id: Date.now(),
-            name: newFood.name,
-            category: newFood.category,
-            price: parseFloat(newFood.price),
-            isAvailable: true,
-        };
-        setFoods([item, ...foods]);
-        setIsModalOpen(false);
-        setNewFood({ name: "", category: "pizza", price: "", description: "" });
+        const formData = new FormData();
+
+        formData.append("name", newFood.name);
+        formData.append("category", newFood.category);
+        formData.append("price", newFood.price);
+        formData.append("description", newFood.description);
+
+        if (image) {
+            formData.append("image", image);
+        }
+
+        const res = await apiClient.post(
+            `${API_ENDPOINTS.FOOD_ITEM}`,
+            formData,
+            {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                }
+            }
+        );
     };
 
     const filteredFoods = foods.filter((food) =>
@@ -85,10 +124,17 @@ const FoodClientPage = () => {
                         {filteredFoods.map((food) => (
                             <tr key={food.id} className="hover:bg-gray-50/50 transition-colors">
                                 <td className="p-4 font-medium flex items-center gap-3">
-                                    <div className="p-2 bg-orange-50 text-[#E15B1E] rounded-lg">
-                                        <Utensils className="h-4 w-4" />
+                                    {food.preview ? (
+                                        <img src={food.preview} alt={food.name} className="h-9 w-9 object-cover rounded-lg border" />
+                                    ) : (
+                                        <div className="p-2 bg-orange-50 text-[#E15B1E] rounded-lg">
+                                            <Utensils className="h-4 w-4" />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <div className="font-medium text-gray-950">{food.name}</div>
+                                        {food.description && <div className="text-xs text-gray-400 line-clamp-1 max-w-[250px]">{food.description}</div>}
                                     </div>
-                                    {food.name}
                                 </td>
                                 <td className="p-4 capitalize">{food.category}</td>
                                 <td className="p-4">${food.price.toFixed(2)}</td>
@@ -115,17 +161,51 @@ const FoodClientPage = () => {
             {/* কাস্টম অ্যাড ফুড মোডাল (পপআপ ফর্ম) */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
                         <h3 className="text-lg font-bold text-gray-900">Add Food to Menu</h3>
                         <form onSubmit={handleAddFood} className="space-y-4">
+
+                            {/* ইমেজ আপলোড সেকশন */}
+                            <div>
+                                <label className="text-xs font-medium text-gray-500 block mb-1">Food Image</label>
+                                {preview ? (
+                                    <div className="relative h-32 w-full border rounded-xl overflow-hidden bg-gray-50">
+                                        <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveImage}
+                                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600 transition-colors"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="flex flex-col items-center justify-center h-32 w-full border border-dashed rounded-xl cursor-pointer bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-gray-400">
+                                            <Upload className="h-8 w-8 mb-2 stroke-1" />
+                                            <p className="text-xs font-medium">Click to upload food image</p>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handleImageChange}
+                                        />
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* ফুড নেম */}
                             <div>
                                 <label className="text-xs font-medium text-gray-500">Food Name</label>
                                 <Input required value={newFood.name} onChange={(e) => setNewFood({ ...newFood, name: e.target.value })} placeholder="e.g., BBQ Chicken Pizza" />
                             </div>
+
+                            {/* ক্যাটাগরি এবং প্রাইস */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs font-medium text-gray-500">Category</label>
-                                    <select className="w-full h-9 rounded-md border px-3 text-sm" value={newFood.category} onChange={(e) => setNewFood({ ...newFood, category: e.target.value })}>
+                                    <select className="w-full h-9 rounded-md border px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E15B1E] bg-white" value={newFood.category} onChange={(e) => setNewFood({ ...newFood, category: e.target.value })}>
                                         <option value="pizza">Pizza</option>
                                         <option value="burgers">Burgers</option>
                                         <option value="cake">Cake</option>
@@ -137,8 +217,22 @@ const FoodClientPage = () => {
                                     <Input required type="number" step="0.01" value={newFood.price} onChange={(e) => setNewFood({ ...newFood, price: e.target.value })} placeholder="12.99" />
                                 </div>
                             </div>
+
+                            {/* নতুন যুক্ত করা ডেসক্রিপশন ফিল্ড */}
+                            <div>
+                                <label className="text-xs font-medium text-gray-500 block mb-1">Description</label>
+                                <textarea
+                                    value={newFood.description}
+                                    onChange={(e) => setNewFood({ ...newFood, description: e.target.value })}
+                                    placeholder="Write a brief description about the food..."
+                                    rows={3}
+                                    className="w-full rounded-md border p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E15B1E] resize-none"
+                                />
+                            </div>
+
+                            {/* অ্যাকশন বাটন */}
                             <div className="flex justify-end gap-3 pt-2">
-                                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                                <Button type="button" variant="outline" onClick={closeModal}>Cancel</Button>
                                 <Button type="submit" className="bg-[#E15B1E] hover:bg-[#c84e17]">Save Item</Button>
                             </div>
                         </form>

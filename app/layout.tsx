@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/common/Navbar";
 import AuthBridge from "@/components/bridge/AuthBridge"
-import Sidebar from "@/components/common/Sidebar";
 import ReduxProvider from "../wrapper/ReduxProvider"
-import AdminBridge from "@/components/bridge/AdminBridge";
+import Provider from "@/wrapper/Provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +15,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: {
     default: "Quick Bite | Best Online Food Order Apps in Bangladesh",
     template: "%s | Quick Bite | Best Online Food Order Apps in Bangladesh",
@@ -40,16 +38,14 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full ">
-        <ReduxProvider>
-          <AuthBridge>
-            {/* <AdminBridge> */}
-              <Navbar />
-              {/* <Sidebar /> */}
+      <body className="min-h-full">
+        <Provider>
+          <ReduxProvider>
+            <AuthBridge>
               {children}
-            {/* </AdminBridge> */}
-          </AuthBridge>
-        </ReduxProvider>
+            </AuthBridge>
+          </ReduxProvider>
+        </Provider>
       </body>
     </html>
   );

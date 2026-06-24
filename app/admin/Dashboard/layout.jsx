@@ -15,41 +15,43 @@ import {
 import { cn } from "../../../lib/utils";
 import { Button } from "@/components/ui/Button";
 
+const sidebarItems = [
+  {
+    icon: LayoutDashboard,
+    label: "Dashboard",
+    path: "/admin/Dashboard",
+  },
+  {
+    icon: Utensils,
+    label: "Manage Food",
+    path: "/admin/Dashboard/food",
+  },
+  {
+    icon: ShoppingBag,
+    label: "Orders",
+    path: "/admin/Dashboard/order",
+  },
+  {
+    icon: Users,
+    label: "Customers",
+    path: "/admin/Dashboard/customers",
+  },
+];
+
 const AdminLayout = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
 
-  const sidebarItems = [
-    {
-      icon: LayoutDashboard,
-      label: "Dashboard",
-      path: "/admin/Dashboard",
-    },
-    {
-      icon: Utensils,
-      label: "Manage Food",
-      path: "/admin/Dashboard/food",
-    },
-    {
-      icon: ShoppingBag,
-      label: "Orders",
-      path: "/admin/Dashboard/order",
-    },
-    {
-      icon: Users,
-      label: "Customers",
-      path: "/admin/Dashboard/customers",
-    },
-  ];
+  const currentSection =
+    sidebarItems.find(
+      (item) => pathname === item.path || pathname.startsWith(`${item.path}/`)
+    )?.label ?? "Dashboard";
 
   return (
-    <div className="flex min-h-screen bg-gray-50/60">
-      {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r bg-white px-4 py-6">
-        <div className="flex items-center gap-2 border-b px-2 pb-6">
-          <span className="text-xl font-bold text-[#E15B1E]">
-            🍕 QuickBite
-          </span>
+    <div className="flex h-dvh overflow-hidden bg-slate-50 text-slate-900">
+      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-slate-200 bg-white px-4 py-6">
+        <div className="flex items-center gap-2 border-b border-slate-200 px-2 pb-6">
+          <span className="text-xl font-bold text-[#E15B1E]">QuickBite</span>
 
           <span className="flex items-center gap-1 rounded-md bg-orange-100 px-2 py-0.5 text-xs font-semibold text-[#E15B1E]">
             <ShieldCheck className="h-3 w-3" />
@@ -59,7 +61,8 @@ const AdminLayout = ({ children }) => {
 
         <nav className="mt-6 flex-1 space-y-1">
           {sidebarItems.map((item) => {
-            const isActive = pathname === item.path;
+            const isActive =
+              pathname === item.path || pathname.startsWith(`${item.path}/`);
 
             return (
               <Link
@@ -69,7 +72,7 @@ const AdminLayout = ({ children }) => {
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
                     ? "bg-[#E15B1E]/10 text-[#E15B1E]"
-                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -79,7 +82,7 @@ const AdminLayout = ({ children }) => {
           })}
         </nav>
 
-        <div className="mt-auto pt-4 border-t">
+        <div className="mt-auto border-t border-slate-200 pt-4">
           <Button
             variant="ghost"
             className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -91,15 +94,14 @@ const AdminLayout = ({ children }) => {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col pl-64">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-8">
-          <h1 className="text-lg font-semibold capitalize text-gray-800">
-            {pathname.split("/").pop()} Panel
+      <div className="flex min-w-0 flex-1 flex-col pl-64">
+        <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-8">
+          <h1 className="text-lg font-semibold text-slate-800">
+            {currentSection} Panel
           </h1>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-slate-500">
               Welcome, Super Admin
             </span>
 
@@ -109,7 +111,7 @@ const AdminLayout = ({ children }) => {
           </div>
         </header>
 
-        <main className="flex-1 p-8">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto p-8">{children}</main>
       </div>
     </div>
   );
