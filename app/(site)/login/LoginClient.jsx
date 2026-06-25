@@ -41,7 +41,7 @@ const LoginClient = () => {
         if (userInfo) {
             router.replace("/")
         }
-    }, [])
+    }, [userInfo])
 
     const onSubmit = async (data) => {
         setServerError("");

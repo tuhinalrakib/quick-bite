@@ -16,4 +16,9 @@ export const API_ENDPOINTS = {
     // Foode Menu
     FOOD_ITEM : `${BACKEND_API}/food`,
 
+    // Payment Integration
+    PAYHERE_HASH : `${BACKEND_API}/payment/payhere-hash`,
+
+    // Orders
+    ORDERS : `${BACKEND_API}/orders`,
 }

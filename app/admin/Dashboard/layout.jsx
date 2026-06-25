@@ -14,6 +14,8 @@ import {
 
 import { cn } from "../../../lib/utils";
 import { Button } from "@/components/ui/Button";
+import { useSelector } from "react-redux";
+import Spinner from "@/components/ui/Spinner";
 
 const sidebarItems = [
   {
@@ -41,11 +43,30 @@ const sidebarItems = [
 const AdminLayout = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
+  const { userInfo, isLoading } = useSelector((state) => state.user);
+
+  React.useEffect(() => {
+    if (!isLoading && (!userInfo || userInfo.role !== "admin")) {
+      router.push("/");
+    }
+  }, [userInfo, isLoading, router]);
 
   const currentSection =
     sidebarItems.find(
       (item) => pathname === item.path || pathname.startsWith(`${item.path}/`)
     )?.label ?? "Dashboard";
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-50">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (!userInfo || userInfo.role !== "admin") {
+    return null;
+  }
 
   return (
     <div className="flex h-dvh overflow-hidden bg-slate-50 text-slate-900">

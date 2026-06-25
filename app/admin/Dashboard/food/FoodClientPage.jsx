@@ -65,11 +65,20 @@ const FoodClientPage = () => {
                 const res = await apiClient.delete(`${API_ENDPOINTS.FOOD_ITEM}/${id}`);
                 if (res.data?.success) {
                     setFoods(foods.filter((food) => (food._id || food.id) !== id));
-                    alert("Food item deleted successfully!");
+                    Swal.fire({
+                        title: "Food item deleted successfully!",
+                        icon: "success",
+                        draggable: true
+                    });
                 }
             } catch (err) {
-                console.error("Error deleting food:", err);
-                alert(err?.response?.data?.message || "Failed to delete food item.");
+                const msg = err?.response?.data?.message || "Failed to delete food item."
+
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: msg,
+                });
             }
         }
     };
@@ -79,7 +88,11 @@ const FoodClientPage = () => {
         e.preventDefault();
 
         if (!image) {
-            alert("Please upload a food image.");
+            Swal.fire({
+                icon: "error",
+                title: "Oops...",
+                text: "Please upload a food image.",
+            });
             return;
         }
 

@@ -40,6 +40,7 @@ type NavbarUserState = {
   user: {
     userInfo?: {
       role?: string;
+      name?: string;
     } | null;
   };
 };
@@ -57,8 +58,6 @@ const NavLink: React.FC<{ href: string; children: React.ReactNode }> = ({
     </Link>
   );
 };
-
-
 
 const Navbar: React.FC<NavbarProps> = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -97,7 +96,7 @@ const Navbar: React.FC<NavbarProps> = () => {
                 height={60}
                 alt="logo"
                 className="rounded-lg"
-              /> QuickBite
+              />
             </span>
           </Link>
 
@@ -113,7 +112,7 @@ const Navbar: React.FC<NavbarProps> = () => {
                   My Orders
                 </NavLink>
 
-                <NavLink href="/account">
+                <NavLink href="/profile">
                   Profile
                 </NavLink>
               </>
@@ -173,7 +172,7 @@ const Navbar: React.FC<NavbarProps> = () => {
                   className="hidden sm:flex items-center gap-1 bg-[#E15B1E] hover:bg-[#c84e17] text-white capitalize"
                 >
                   <User className="h-4 w-4 mr-1" />
-                  {userInfo?.role}
+                  {userInfo?.name?.split(' ')[0]}
                   <ChevronDown className="h-4 w-4 ml-1 opacity-70" />
                 </Button>
               </DropdownMenuTrigger>
@@ -273,10 +272,10 @@ const Navbar: React.FC<NavbarProps> = () => {
                         </Link>
 
                         <Link
-                          href="/account"
+                          href="/profile"
                           className="hover:text-[#E15B1E] transition-colors"
                         >
-                          Account
+                          Profile
                         </Link>
                       </>
                     }

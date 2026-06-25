@@ -6,6 +6,7 @@ import { Button } from "../../../../components/ui/Button";
 import { Input } from "../../../../components/ui/Input";
 import apiClient from "@/utils/apiClient";
 import { API_ENDPOINTS } from "@/constants/apiEnd";
+import Swal from "sweetalert2";
 
 const CustomerClientPage = () => {
     const { userInfo } = useSelector((state) => state.user);
@@ -34,16 +35,22 @@ const CustomerClientPage = () => {
     // Change user role
     const handleRoleChange = async (userId, currentRole) => {
         const targetRole = currentRole === "admin" ? "customer" : "admin";
-        
-        // Confirm demotion if the user is currently an admin
-        if (currentRole === "admin") {
-            if (!confirm("Are you sure you want to demote this Admin to a Customer?")) {
-                return;
-            }
-        } else {
-            if (!confirm("Are you sure you want to promote this Customer to an Admin?")) {
-                return;
-            }
+        const confirmMessage = currentRole === "admin"
+            ? "Are you sure you want to demote this Admin to a Customer?"
+            : "Are you sure you want to promote this Customer to an Admin?";
+
+        const result = await Swal.fire({
+            title: "Are you sure?",
+            text: confirmMessage,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#E15B1E",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, change it!"
+        });
+
+        if (!result.isConfirmed) {
+            return;
         }
 
         setActionLoadingId(userId);
@@ -53,14 +60,23 @@ const CustomerClientPage = () => {
             });
 
             if (res.data?.success) {
-                setUsers(prevUsers => prevUsers.map(user => 
+                setUsers(prevUsers => prevUsers.map(user =>
                     (user._id || user.id) === userId ? { ...user, role: targetRole } : user
                 ));
-                alert(`User role updated to ${targetRole} successfully!`);
+                Swal.fire({
+                    title: `User role updated to ${targetRole} successfully!`,
+                    icon: "success",
+                    draggable: true
+                });
             }
         } catch (err) {
-            console.error("Error updating role:", err);
-            alert(err?.response?.data?.message || "Failed to update user role.");
+            const msg = err?.response?.data?.message || "Failed to update user role."
+
+            Swal.fire({
+                icon: "error",
+                title: "Oops...",
+                text: msg,
+            });
         } finally {
             setActionLoadingId(null);
         }
@@ -68,7 +84,17 @@ const CustomerClientPage = () => {
 
     // Delete user
     const handleDeleteUser = async (userId) => {
-        if (!confirm("Are you sure you want to delete this user? This action cannot be undone!")) {
+        const result = await Swal.fire({
+            title: "Are you sure?",
+            text: "Are you sure you want to delete this user? This action cannot be undone!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#E15B1E",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, delete it!"
+        });
+
+        if (!result.isConfirmed) {
             return;
         }
 
@@ -77,11 +103,20 @@ const CustomerClientPage = () => {
             const res = await apiClient.delete(`${API_ENDPOINTS.USERS}/${userId}`);
             if (res.data?.success) {
                 setUsers(prevUsers => prevUsers.filter(user => (user._id || user.id) !== userId));
-                alert("User deleted successfully!");
+                Swal.fire({
+                    title: "User deleted successfully!",
+                    icon: "success",
+                    draggable: true
+                });
             }
         } catch (err) {
-            console.error("Error deleting user:", err);
-            alert(err?.response?.data?.message || "Failed to delete user.");
+            const msg = err?.response?.data?.message || "Failed to delete user."
+
+            Swal.fire({
+                icon: "error",
+                title: "Oops...",
+                text: msg
+            });
         } finally {
             setActionLoadingId(null);
         }
@@ -191,15 +226,14 @@ const CustomerClientPage = () => {
 
                                         {/* Role Badge Column */}
                                         <td className="p-4">
-                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                                user.role === "admin" 
-                                                    ? "bg-red-50 text-red-700 border border-red-100" 
-                                                    : "bg-green-50 text-green-700 border border-green-100"
-                                            }`}>
+                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${user.role === "admin"
+                                                ? "bg-red-50 text-red-700 border border-red-100"
+                                                : "bg-green-50 text-green-700 border border-green-100"
+                                                }`}>
                                                 {user.role === "admin" ? (
-                                                    <ShieldCheck className="h-3.5 w-3.5 stroke-[2]" />
+                                                    <ShieldCheck className="h-3.5 w-3.5 stroke-2" />
                                                 ) : (
-                                                    <UserCheck className="h-3.5 w-3.5 stroke-[2]" />
+                                                    <UserCheck className="h-3.5 w-3.5 stroke-2" />
                                                 )}
                                                 <span className="capitalize">{user.role}</span>
                                             </span>
@@ -208,16 +242,15 @@ const CustomerClientPage = () => {
                                         {/* Action Buttons Column */}
                                         <td className="p-4 text-right space-x-2">
                                             {/* Role Toggle Button */}
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm" 
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
                                                 onClick={() => handleRoleChange(userId, user.role)}
                                                 disabled={isSelf || actionLoadingId !== null}
-                                                className={`text-xs ${
-                                                    user.role === "admin" 
-                                                        ? "hover:bg-amber-50 hover:text-amber-700 border-amber-200" 
-                                                        : "hover:bg-blue-50 hover:text-blue-700 border-blue-200"
-                                                }`}
+                                                className={`text-xs ${user.role === "admin"
+                                                    ? "hover:bg-amber-50 hover:text-amber-700 border-amber-200"
+                                                    : "hover:bg-blue-50 hover:text-blue-700 border-blue-200"
+                                                    }`}
                                             >
                                                 {actionLoadingId === userId ? (
                                                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -233,9 +266,9 @@ const CustomerClientPage = () => {
                                             </Button>
 
                                             {/* Delete Button */}
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
                                                 onClick={() => handleDeleteUser(userId)}
                                                 disabled={isSelf || actionLoadingId !== null}
                                                 className="text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"

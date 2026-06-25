@@ -4,15 +4,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setAuthLoading, setIsAuthenticated, setUserInfo } from "../../store/userSlice";
 import apiClient from '../../utils/apiClient';
 import { API_ENDPOINTS } from '../../constants/apiEnd';
+import Spinner from '../ui/Spinner';
 
 const AuthBridge = ({ children }) => {
-    const { isAuthenticated } = useSelector((state) => state.user);
+    const { isAuthenticated, isLoading } = useSelector((state) => state.user);
     const dispatch = useDispatch()
 
     const checkAuth = async () => {
         try {
             if (!isAuthenticated) {
                 dispatch(setUserInfo(null));
+                dispatch(setIsAuthenticated(false));
                 dispatch(setAuthLoading(false))
                 return;
             }
@@ -33,6 +35,8 @@ const AuthBridge = ({ children }) => {
     useEffect(() => {
         checkAuth();
     }, []);
+
+    if(isLoading) return <Spinner />
 
     return children
 };

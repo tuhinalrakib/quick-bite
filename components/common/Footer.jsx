@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import {
   Mail,
   Phone,
@@ -13,9 +14,37 @@ import { FaFacebookF, FaInstagram, FaXTwitter } from "react-icons/fa6";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Link from "next/link";
+import Image from "next/image";
+import Swal from "sweetalert2";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    if (!email) return;
+
+    setLoading(true);
+
+    // Simulate network latency for a premium interactive feel
+    setTimeout(() => {
+      setLoading(false);
+      setEmail("");
+      
+      Swal.fire({
+        title: "Subscribed Successfully!",
+        text: "Thank you for subscribing to our newsletter.",
+        icon: "success",
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    }, 1000);
+  };
 
   return (
     <footer className="w-full border-t mt-10 bg-gray-50/50 text-gray-600">
@@ -25,8 +54,15 @@ const Footer = () => {
           {/* Brand */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2">
+              <Image
+                src="/logo.png"
+                width={50}
+                height={50}
+                alt="QuickBite Logo"
+                className="rounded-lg"
+              />
               <span className="text-xl font-bold tracking-tight text-[#E15B1E]">
-                🍕 QuickBite
+                QuickBite
               </span>
             </Link>
 
@@ -145,21 +181,25 @@ const Footer = () => {
             </p>
 
             <form
-              onSubmit={(e) => e.preventDefault()}
+              onSubmit={handleSubscribe}
               className="space-y-2"
             >
               <Input
                 type="email"
                 placeholder="Your email address"
                 className="w-full bg-white focus-visible:ring-[#E15B1E]"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
                 required
               />
 
               <Button
                 type="submit"
-                className="w-full bg-[#E15B1E] text-white hover:bg-[#c84e17]"
+                className="w-full bg-[#E15B1E] text-white hover:bg-[#c84e17] flex items-center justify-center gap-2"
+                disabled={loading}
               >
-                Subscribe
+                {loading ? "Subscribing..." : "Subscribe"}
               </Button>
             </form>
           </div>
