@@ -15,9 +15,10 @@ const FoodClientPage = () => {
     const [submitting, setSubmitting] = useState(false);
 
     // মেইন ফর্ম স্টেটসমূহ
-    const [newFood, setNewFood] = useState({ name: "", category: "pizza", price: "", description: "" });
+    const [newFood, setNewFood] = useState({ name: "", category: "pizza", price: "", description: "", isAvailable: true });
     const [image, setImage] = useState(null); // ব্যাকএন্ডে পাঠানোর জন্য র ফাইল স্টেট
     const [preview, setPreview] = useState(""); // UI-তে দেখানোর জন্য লোকাল URL স্টেট
+    const [editingFood, setEditingFood] = useState(null);
 
     // API থেকে খাবার নিয়ে আসার জন্য useEffect
     useEffect(() => {
@@ -53,41 +54,67 @@ const FoodClientPage = () => {
 
     const closeModal = () => {
         setIsModalOpen(false);
-        setNewFood({ name: "", category: "pizza", price: "", description: "" });
+        setEditingFood(null);
+        setNewFood({ name: "", category: "pizza", price: "", description: "", isAvailable: true });
         setImage(null);
         setPreview("");
     };
 
-    // Handle Delete 
-    const handleDelete = async (id) => {
-        if (confirm("Are you sure you want to delete this item?")) {
-            try {
-                const res = await apiClient.delete(`${API_ENDPOINTS.FOOD_ITEM}/${id}`);
-                if (res.data?.success) {
-                    setFoods(foods.filter((food) => (food._id || food.id) !== id));
-                    Swal.fire({
-                        title: "Food item deleted successfully!",
-                        icon: "success",
-                        draggable: true
-                    });
-                }
-            } catch (err) {
-                const msg = err?.response?.data?.message || "Failed to delete food item."
-
-                Swal.fire({
-                    icon: "error",
-                    title: "Oops...",
-                    text: msg,
-                });
-            }
-        }
+    const handleEditClick = (food) => {
+        setEditingFood(food);
+        setNewFood({
+            name: food.name,
+            category: food.category,
+            price: food.price.toString(),
+            description: food.description || "",
+            isAvailable: food.isAvailable !== undefined ? food.isAvailable : true
+        });
+        setPreview(food.image || "");
+        setImage(null);
+        setIsModalOpen(true);
     };
 
-    // Add food handler
-    const handleAddFood = async (e) => {
+    // Handle Delete 
+    const handleDelete = (id) => {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "You won't be able to revert this!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#E15B1E",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, delete it!"
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const res = await apiClient.delete(`${API_ENDPOINTS.FOOD_ITEM}/${id}`);
+                    if (res.data?.success) {
+                        setFoods(foods.filter((food) => (food._id || food.id) !== id));
+                        Swal.fire({
+                            title: "Deleted!",
+                            text: "Food item has been deleted.",
+                            icon: "success",
+                            confirmButtonColor: "#E15B1E"
+                        });
+                    }
+                } catch (err) {
+                    const msg = err?.response?.data?.message || "Failed to delete food item."
+                    Swal.fire({
+                        icon: "error",
+                        title: "Oops...",
+                        text: msg,
+                        confirmButtonColor: "#E15B1E"
+                    });
+                }
+            }
+        });
+    };
+
+    // Add/Edit food handler
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!image) {
+        if (!editingFood && !image) {
             Swal.fire({
                 icon: "error",
                 title: "Oops...",
@@ -103,34 +130,65 @@ const FoodClientPage = () => {
             formData.append("category", newFood.category);
             formData.append("price", newFood.price);
             formData.append("description", newFood.description);
-            formData.append("image", image);
+            if (image) {
+                formData.append("image", image);
+            }
+            if (editingFood) {
+                formData.append("isAvailable", newFood.isAvailable);
+            }
 
-            const res = await apiClient.post(
-                `${API_ENDPOINTS.FOOD_ITEM}`,
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
+            if (editingFood) {
+                const res = await apiClient.put(
+                    `${API_ENDPOINTS.FOOD_ITEM}/${editingFood._id || editingFood.id}`,
+                    formData,
+                    {
+                        headers: {
+                            "Content-Type": "multipart/form-data",
+                        }
                     }
-                }
-            );
+                );
 
-            if (res.data?.success) {
-                const createdFood = res.data.data;
-                setFoods([createdFood, ...foods]);
-                Swal.fire({
-                    position: "center",
-                    icon: "success",
-                    title: "Item Added!",
-                    text: "Food item added successfully!",
-                    showConfirmButton: false,
-                    timer: 1500,
-                });
-                closeModal();
+                if (res.data?.success) {
+                    const updatedFood = res.data.data;
+                    setFoods(foods.map((food) => (food._id || food.id) === (editingFood._id || editingFood.id) ? updatedFood : food));
+                    Swal.fire({
+                        position: "center",
+                        icon: "success",
+                        title: "Item Updated!",
+                        text: "Food item updated successfully!",
+                        showConfirmButton: false,
+                        timer: 1500,
+                    });
+                    closeModal();
+                }
+            } else {
+                const res = await apiClient.post(
+                    `${API_ENDPOINTS.FOOD_ITEM}`,
+                    formData,
+                    {
+                        headers: {
+                            "Content-Type": "multipart/form-data",
+                        }
+                    }
+                );
+
+                if (res.data?.success) {
+                    const createdFood = res.data.data;
+                    setFoods([createdFood, ...foods]);
+                    Swal.fire({
+                        position: "center",
+                        icon: "success",
+                        title: "Item Added!",
+                        text: "Food item added successfully!",
+                        showConfirmButton: false,
+                        timer: 1500,
+                    });
+                    closeModal();
+                }
             }
         } catch (err) {
-            console.error("Error adding food:", err);
-            const msg = err?.response?.data?.message || "Failed to add food item."
+            console.error("Error saving food:", err);
+            const msg = err?.response?.data?.message || "Failed to save food item."
             Swal.fire({ icon: "error", title: "Oops!", text: msg });
         } finally {
             setSubmitting(false);
@@ -218,7 +276,7 @@ const FoodClientPage = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-right space-x-2">
-                                        <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
+                                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(food)} className="text-gray-500 hover:text-gray-700">
                                             <Edit2 className="h-4 w-4" />
                                         </Button>
                                         <Button variant="ghost" size="icon" onClick={() => handleDelete(food._id || food.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
@@ -232,12 +290,14 @@ const FoodClientPage = () => {
                 </table>
             </div>
 
-            {/* কাস্টম অ্যাড ফুড মোডাল (পপআপ ফর্ম) */}
+            {/* কাস্টম অ্যাড/এডিট ফুড মোডাল (পপআপ ফর্ম) */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-lg font-bold text-gray-900">Add Food to Menu</h3>
-                        <form onSubmit={handleAddFood} className="space-y-4">
+                        <h3 className="text-lg font-bold text-gray-900">
+                            {editingFood ? "Edit Food Item" : "Add Food to Menu"}
+                        </h3>
+                        <form onSubmit={handleSubmit} className="space-y-4">
 
                             {/* ইমেজ আপলোড সেকশন */}
                             <div>
@@ -310,6 +370,23 @@ const FoodClientPage = () => {
                                     required
                                 />
                             </div>
+
+                            {/* Availability checkbox - only visible in Edit mode */}
+                            {editingFood && (
+                                <div className="flex items-center gap-2 py-2">
+                                    <input
+                                        type="checkbox"
+                                        id="isAvailable"
+                                        checked={newFood.isAvailable}
+                                        onChange={(e) => setNewFood({ ...newFood, isAvailable: e.target.checked })}
+                                        disabled={submitting}
+                                        className="h-4 w-4 text-[#E15B1E] focus:ring-[#E15B1E] border-gray-300 rounded cursor-pointer"
+                                    />
+                                    <label htmlFor="isAvailable" className="text-sm font-medium text-gray-700 cursor-pointer">
+                                        Available / In Stock
+                                    </label>
+                                </div>
+                            )}
 
                             {/* অ্যাকশন বাটন */}
                             <div className="flex justify-end gap-3 pt-2">

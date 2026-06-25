@@ -170,26 +170,69 @@ const CartClient = () => {
           };
 
           // Configure PayHere event hooks
-          window.payhere.onCompleted = function onCompleted(orderId) {
+          window.payhere.onCompleted = async function onCompleted(payhereOrderId) {
             Swal.fire({
-              icon: "success",
-              title: "Order Placed Successfully! 🎉",
-              html: `
-                <div class="text-left mt-3 p-4 bg-gray-50 rounded-xl space-y-1 text-sm border">
-                  <p><strong>Deliver to:</strong> ${shippingName}</p>
-                  <p><strong>Phone:</strong> ${shippingPhone}</p>
-                  <p><strong>Address:</strong> ${shippingAddress}</p>
-                  <p><strong>Payment Mode:</strong> PayHere Online</p>
-                  <p class="mt-2 text-[#E15B1E] font-bold">Estimated Delivery: 30-45 mins</p>
-                </div>
-              `,
-              confirmButtonColor: "#E15B1E",
-              confirmButtonText: "Back to Home",
-            }).then(() => {
-              setIsCheckoutOpen(false);
-              dispatch(clearCart());
-              router.push("/");
+              title: "Finalizing Order...",
+              text: "Please wait while we record your payment and place the order.",
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading();
+              },
             });
+
+            try {
+              const orderData = {
+                items: cartItems.map(item => ({
+                  food: item._id || item.id,
+                  name: item.name,
+                  price: item.price,
+                  quantity: item.quantity,
+                  image: item.image
+                })),
+                totalAmount: total,
+                paymentMethod: "payhere",
+                shippingDetails: {
+                  name: shippingName,
+                  phone: shippingPhone,
+                  address: shippingAddress
+                }
+              };
+
+              const response = await apiClient.post(API_ENDPOINTS.ORDERS, orderData);
+
+              if (response.data?.success) {
+                Swal.close();
+                Swal.fire({
+                  icon: "success",
+                  title: "Order Placed Successfully! 🎉",
+                  html: `
+                    <div class="text-left mt-3 p-4 bg-gray-50 rounded-xl space-y-1 text-sm border">
+                      <p><strong>Deliver to:</strong> ${shippingName}</p>
+                      <p><strong>Phone:</strong> ${shippingPhone}</p>
+                      <p><strong>Address:</strong> ${shippingAddress}</p>
+                      <p><strong>Payment Mode:</strong> PayHere Online</p>
+                      <p class="mt-2 text-[#E15B1E] font-bold">Estimated Delivery: 30-45 mins</p>
+                    </div>
+                  `,
+                  confirmButtonColor: "#E15B1E",
+                  confirmButtonText: "View My Orders",
+                }).then(() => {
+                  setIsCheckoutOpen(false);
+                  dispatch(clearCart());
+                  router.push("/orders");
+                });
+              } else {
+                throw new Error("Failed to record order on server.");
+              }
+            } catch (err) {
+              console.error(err);
+              Swal.fire({
+                icon: "error",
+                title: "Failed to record order",
+                text: err.response?.data?.message || err.message || "Your payment was successful, but we failed to record your order. Please contact support.",
+                confirmButtonColor: "#E15B1E",
+              });
+            }
           };
 
           window.payhere.onDismissed = function onDismissed() {
